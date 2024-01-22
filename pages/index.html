@@ -143,7 +143,17 @@
         </div>
       </div>
       <!-- 新增、編輯 Modal -->
-      <!-- ref 可快速取得該元件 DOM -->
+      <update-modal
+        :product="tempProduct"
+        :is-new="isNew"
+        @update="getProductData"
+      ></update-modal>
+      <!-- 刪除 Modal -->
+      <del-modal :item="tempProduct" @update="getProductData"></del-modal>
+    </div>
+
+    <!-- 新增、編輯 modal template -->
+    <script type="text/x-template" id="updateModal">
       <div
         class="modal fade"
         id="productModal"
@@ -155,7 +165,7 @@
         <div class="modal-dialog modal-xl">
           <div class="modal-content">
             <div class="modal-header bg-success">
-              <h3 class="modal-title text-white" id="productModalLabel">
+              <h3 class="modal-title text-white" id="ProductModalLabel">
                 <span v-if="isNew">新增商品</span>
                 <span v-else>編輯商品</span>
               </h3>
@@ -181,7 +191,7 @@
                           class="form-control"
                           id="productTitle"
                           placeholder="請輸入商品標題"
-                          v-model="tempProduct.title"
+                          v-model="product.title"
                         />
                       </div>
                     </div>
@@ -195,7 +205,7 @@
                           class="form-control"
                           id="productCategory"
                           placeholder="請輸入商品分類"
-                          v-model="tempProduct.category"
+                          v-model="product.category"
                         />
                       </div>
                     </div>
@@ -212,7 +222,7 @@
                           id="productOriginPrice"
                           min="10"
                           placeholder="請輸入商品原價"
-                          v-model.number="tempProduct.origin_price"
+                          v-model.number="product.origin_price"
                         />
                       </div>
                     </div>
@@ -227,7 +237,7 @@
                           id="productPrice"
                           min="10"
                           placeholder="請輸入商品售價"
-                          v-model.number="tempProduct.price"
+                          v-model.number="product.price"
                         />
                       </div>
                     </div>
@@ -239,7 +249,7 @@
                           class="form-control"
                           id="productUnit"
                           placeholder="請輸入商品單位"
-                          v-model="tempProduct.unit"
+                          v-model="product.unit"
                         />
                       </div>
                     </div>
@@ -253,7 +263,7 @@
                       class="form-control"
                       id="producrDescription"
                       placeholder="請輸入商品描述"
-                      v-model="tempProduct.description"
+                      v-model="product.description"
                     />
                   </div>
                   <div class="mb-3">
@@ -265,7 +275,7 @@
                       class="form-control"
                       id="productContent"
                       placeholder="請輸入商品內容"
-                      v-model="tempProduct.content"
+                      v-model="product.content"
                     />
                   </div>
                   <div class="mb-3">
@@ -273,7 +283,7 @@
                       type="checkbox"
                       class="form-checkbox-input me-1"
                       id="productIsEnabled"
-                      v-model="tempProduct.is_enabled"
+                      v-model="product.is_enabled"
                       :true-value="1"
                       :false-value="0"
                     />
@@ -293,32 +303,32 @@
                       class="form-control mb-3"
                       id="productMainImage"
                       placeholder="請輸入主圖網址"
-                      v-model="tempProduct.imageUrl"
+                      v-model="product.imageUrl"
                     />
                     <img
                       class="img-fluid"
-                      :src="tempProduct.imageUrl"
-                      :alt="tempProduct.title"
+                      :src="product.imageUrl"
+                      :alt="product.title"
                     />
                   </div>
                   <h5>多圖新增</h5>
                   <!-- 使用 Array.isArray 驗證傳入的值是否為陣列，如果是就回傳 true -->
-                  <div v-if="Array.isArray(tempProduct.imagesUrl)">
-                    <!-- 用 v-for 跑 tempProduct.imagesUrl，label 的 for 跟 input 的 id 用 key 來綁定 -->
-                    <!-- 陣列裡有空字串，就會把 input 欄位渲染到畫面，不過因為 input value 為空所以 input 欄位的內容不會顯示任何東西 -->
+                  <div v-if="Array.isArray(product.imagesUrl)">
+                    <!-- 用 v-for 跑 product.imagesUrl，label 的 for 跟 input 的 id 用 key 來綁定 -->
+                    <!-- 陣列裡有空字串有會渲染，不過因為 input value 為空所以不會顯示任何東西 -->
                     <div
                       class="mb-1"
-                      v-for="(image, key) in tempProduct.imagesUrl"
+                      v-for="(image, key) in product.imagesUrl"
                       :key="key"
                     >
                       <div class="mb-3">
                         <label :for="`imagesUrl${key}`" class="form-label"
                           >圖片網址</label
                         >
-                        <!-- v-model 使用索引值(key)綁定對應的圖片 url -> tempProduct.imagesUrl[key] -->
+                        <!-- v-model 使用索引值(key)綁定對應的圖片 url -> product.imagesUrl[key] -->
                         <input
                           :id="`imagesUrl${key}`"
-                          v-model="tempProduct.imagesUrl[key]"
+                          v-model="product.imagesUrl[key]"
                           type="url"
                           class="form-control"
                           placeholder="請輸入圖片連結"
@@ -327,16 +337,16 @@
                       <!-- v-bind 綁定imagesUrl 的所有圖片網址，即時渲染圖片 -->
                       <img class="img-fluid" :src="image" />
                     </div>
-                    <!-- 如果 imagesUrl 長度為 0(第一次點開新增商品前，tempProduct.imagesUrl = []，所以 !false = true，因此會顯示 v-if 內容)，或目前最後一個照片網址有填寫時(input 內有值true 時)。
+                    <!-- 如果 imagesUrl 長度為 0(第一次點開新增商品前，product.imagesUrl = []，所以 !false = true，因此會顯示 v-if 內容)，或目前最後一個照片網址有填寫時(input 內有值true 時)。
                     當第一次點開新增圖片後，雖然 push 一個空字串到 imagesUrl 陣列，length 有值了，但是若是用陣列取值去讀取，仍會取得假值，空字串視為 false，所以 false || false 會顯示刪除圖片按鈕 -->
                     <!-- 簡言之就是當 imagesUrl 為空陣列，或是有填寫網址時會呈現新增圖片按鈕 -->
                     <div
-                      v-if="!tempProduct.imagesUrl.length || tempProduct.imagesUrl[tempProduct.imagesUrl.length - 1]"
+                      v-if="!product.imagesUrl.length || product.imagesUrl[product.imagesUrl.length - 1]"
                     >
                       <!-- 長度為 0 或是上一個 input 填滿了，會推一個空字串進去，重新跑 v-for，並且渲染出一個新的空 input 讓人填寫下一個網址 -->
                       <button
                         class="btn btn-outline-success btn-sm d-block w-100"
-                        @click="tempProduct.imagesUrl.push('')"
+                        @click="product.imagesUrl.push('')"
                       >
                         新增圖片
                       </button>
@@ -344,14 +354,14 @@
                     <div v-else>
                       <button
                         class="btn btn-outline-danger btn-sm d-block w-100"
-                        @click="tempProduct.imagesUrl.pop()"
+                        @click="product.imagesUrl.pop()"
                       >
                         刪除圖片
                       </button>
                     </div>
                   </div>
-                  <!-- 如果 tempProduct 沒有 imagesUrl 陣列，就顯示「新增圖片」按鈕，並在按下按鈕後，執行 createImages methods 來推進一個空陣列，進而讓上方 v-if 等於 true，且在輸入網址後可以開始用 v-for 渲染多圖照片 -->
-                  <!-- 好像非必要，除非把所有會為 data 新增 tempProduct.imagesUrl 的程式碼移除，才會出現該按鈕 -->
+                  <!-- 如果 product 沒有 imagesUrl 陣列，就顯示「新增圖片」按鈕，並在按下按鈕後，執行 createImages methods 來推進一個空陣列，進而讓上方 v-if 等於 true，且在輸入網址後可以開始用 v-for 渲染多圖照片 -->
+                  <!-- 好像非必要，除非把所有會為 data 新增 product.imagesUrl 的程式碼移除，才會出現該按鈕 -->
                   <div v-else>
                     <button
                       class="btn btn-outline-primary btn-sm d-block w-100"
@@ -384,10 +394,11 @@
           </div>
         </div>
       </div>
+    </script>
 
-      <!-- 刪除 Modal -->
-      <!-- ref 可快速取得該元件 DOM -->
-      <div
+    <!-- 刪除 modal template -->
+    <script type="text/x-template" id="delModal">
+        <div
         id="delProductModal"
         ref="delProductModal"
         class="modal fade"
@@ -411,7 +422,7 @@
             <div class="modal-body">
               <p class="text-center">
                 是否刪除
-                <strong class="text-danger">{{ tempProduct.title }}</strong>？
+                <strong class="text-danger">{{ item.title }}</strong>？
               </p>
               <p class="text-center">商品刪除後將無法恢復！</p>
             </div>
@@ -430,7 +441,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </script>
 
     <script type="module" src="../main.js"></script>
     <script

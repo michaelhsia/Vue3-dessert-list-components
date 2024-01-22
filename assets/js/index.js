@@ -1,5 +1,7 @@
-// ESM 載入 Vue3
+// Vue
 import { createApp } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+
+// 元件
 
 // axios 套件 -> 預設匯入
 import axios from "axios";
@@ -28,12 +30,122 @@ let delProductModal = null;
 // 有些 request 需要夾帶 token 才能使用，所以在發送請求時夾帶 headers 資料，放在全域的話，每次發請求都會自動夾帶
 axios.defaults.headers.common["Authorization"] = token;
 
-// 流程：
-// 1. 抓到 input 帳密
-// 2. 點擊按鈕後，發請求 post 到資料庫
-// 3. 把 token 跟 expired 存到 cookie
-// 4. 確認已有 token 進入到產品列表
-// 5. index.html 要在 created 驗證是否有 token 存在 cookie 中，若沒有則 location.href 導入 login.html
+// 新增、編輯 modal
+const updateModal = {
+  props: ["product", "isNew"],
+  template: "#updateModal",
+  methods: {
+    // 更新商品
+    updateProduct() {
+      // 新增商品就發送 post 請求
+      if (this.isNew === true) {
+        axios
+          .post(`${url}/api/${path}/admin/product`, { data: this.product })
+          .then((res) => {
+            // 新增商品成功通知
+            Swal.fire({
+              title: `${res.data.message}`,
+              icon: "success",
+              showConfirmButton: false,
+              timer: 1500,
+            });
+
+            // 關閉「新增商品」彈跳視窗
+            productModal.hide();
+
+            // 觸發外層 getProductData 重新渲染表格
+            this.$emit("update");
+          })
+          .catch((err) => {
+            Swal.fire({
+              title: `${err.response.data.message}`,
+              icon: "warning",
+              showConfirmButton: false,
+              timer: 1500,
+            });
+          });
+      }
+      // 修改商品就發送 put 請求，要有商品 id
+      else if (this.isNew === false) {
+        axios
+          .put(`${url}/api/${path}/admin/product/${this.product.id}`, {
+            data: this.product,
+          })
+          .then((res) => {
+            console.log(res.data);
+            // 編輯商品成功通知
+            Swal.fire({
+              title: `${res.data.message}`,
+              icon: "success",
+              showConfirmButton: false,
+              timer: 1500,
+            });
+
+            // 關閉「編輯商品」彈跳視窗
+            productModal.hide();
+
+            // 觸發外層 getProductData 重新渲染表格
+            this.$emit("update");
+          })
+          .catch((err) => {
+            Swal.fire({
+              title: `${err.response.data.message}`,
+              icon: "warning",
+              showConfirmButton: false,
+              timer: 1500,
+            });
+          });
+      }
+    },
+  },
+  mounted() {
+    // 創造 BS5 modal 元件實例，一定要在 mounted 後，不然抓不到 DOM，在created 創造會出現 backdrop undefined 錯誤，另外需建立在 container 外，#app 內，才不會與其他物件發生衝突、也才能透過 vue 操作
+    productModal = new bootstrap.Modal(this.$refs.productModal);
+  },
+};
+
+// 刪除 modal
+const delModal = {
+  props: ["item"],
+  template: "#delModal",
+  methods: {
+    // 刪除商品
+    delProduct() {
+      axios
+        .delete(`${url}/api/${path}/admin/product/${this.item.id}`)
+        .then((res) => {
+          // 彈跳通知「刪除成功訊息」
+          Swal.fire({
+            title: `${res.data.message}`,
+            icon: "success",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+
+          // 把 BS5 彈跳視窗關閉
+          delProductModal.hide();
+
+          // 重新抓商品資料渲染表格
+          this.$emit("update");
+
+          // 商品刪除了，所以清空 tempProduct 才不會出現在商品細節中
+          this.item = { imagesUrl: [] };
+        })
+        .catch((err) => {
+          // 彈跳通知「刪除失敗訊息」
+          Swal.fire({
+            title: `${err.response.data.message}`,
+            icon: "warning",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+        });
+    },
+  },
+  mounted() {
+    delProductModal = new bootstrap.Modal(this.$refs.delProductModal);
+  },
+};
 
 const app = createApp({
   data() {
@@ -47,6 +159,10 @@ const app = createApp({
         imagesUrl: [],
       },
     };
+  },
+  components: {
+    updateModal,
+    delModal,
   },
   methods: {
     // 未登入，會跳回登入頁面
@@ -94,100 +210,6 @@ const app = createApp({
         delProductModal.show();
       }
     },
-    // 更新商品
-    updateProduct() {
-      // 新增商品就發送 post 請求
-      if (this.isNew === true) {
-        axios
-          .post(`${url}/api/${path}/admin/product`, { data: this.tempProduct })
-          .then((res) => {
-            // 新增商品成功通知
-            Swal.fire({
-              title: `${res.data.message}`,
-              icon: "success",
-              showConfirmButton: false,
-              timer: 1500,
-            });
-
-            // 關閉「新增商品」彈跳視窗
-            productModal.hide();
-
-            // 重新渲染表格
-            this.getProductData();
-          })
-          .catch((err) => {
-            Swal.fire({
-              title: `${err.response.data.message}`,
-              icon: "warning",
-              showConfirmButton: false,
-              timer: 1500,
-            });
-          });
-      }
-      // 修改商品就發送 put 請求，要有商品 id
-      else if (this.isNew === false) {
-        axios
-          .put(`${url}/api/${path}/admin/product/${this.tempProduct.id}`, {
-            data: this.tempProduct,
-          })
-          .then((res) => {
-            console.log(res.data);
-            // 編輯商品成功通知
-            Swal.fire({
-              title: `${res.data.message}`,
-              icon: "success",
-              showConfirmButton: false,
-              timer: 1500,
-            });
-
-            // 關閉「編輯商品」彈跳視窗
-            productModal.hide();
-
-            // 重新渲染表格
-            this.getProductData();
-          })
-          .catch((err) => {
-            Swal.fire({
-              title: `${err.response.data.message}`,
-              icon: "warning",
-              showConfirmButton: false,
-              timer: 1500,
-            });
-          });
-      }
-    },
-    // 刪除商品
-    delProduct() {
-      axios
-        .delete(`${url}/api/${path}/admin/product/${this.tempProduct.id}`)
-        .then((res) => {
-          // 彈跳通知「刪除成功訊息」
-          Swal.fire({
-            title: `${res.data.message}`,
-            icon: "success",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-
-          // 把 BS5 彈跳視窗關閉
-          delProductModal.hide();
-
-          // 重新抓商品資料渲染表格
-          this.getProductData();
-
-          // 商品刪除了，所以清空 tempProduct 才不會出現在商品細節中
-          this.tempProduct = { imagesUrl: [] };
-        })
-        .catch((err) => {
-          // 彈跳通知「刪除失敗訊息」
-          Swal.fire({
-            title: `${err.response.data.message}`,
-            icon: "warning",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-        });
-    },
     // 新增商品小圖，除非 this.tempProduct 沒有陣列屬性才有機會用到
     createImages() {
       this.tempProduct.imagesUrl = [];
@@ -204,13 +226,6 @@ const app = createApp({
     },
   },
   mounted() {
-    // 創造 BS5 modal 元件實例，一定要在 mounted 後，不然抓不到 DOM，在 created 創造會出現 backdrop undefined 錯誤，另外需建立在 container 外，#app 內，才不會與其他物件發生衝突、也才能透過 vue 操作
-    // console.log(this.$refs);
-    productModal = new bootstrap.Modal(this.$refs.productModal);
-    // console.log(productModal);
-
-    delProductModal = new bootstrap.Modal(this.$refs.delProductModal);
-
     // 在 mounted 時，驗證是否登入，如果沒通過驗證就跑 catch
     axios
       .post(`${url}/api/user/check`)

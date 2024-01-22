@@ -81,7 +81,4 @@ export default {
         });
     },
   },
-  mounted() {
-    delProductModal = new bootstrap.Modal(this.$refs.delProductModal);
-  },
 };

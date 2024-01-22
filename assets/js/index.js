@@ -26,11 +26,9 @@ const token = document.cookie.replace(
 // 新增或編輯商品時的 BS5 元物件實例
 let productModal = null;
 export { productModal };
-
 // 刪除商品時的 BS5 元物件實例
 let delProductModal = null;
 export { delProductModal };
-
 // 有些 request 需要夾帶 token 才能使用，所以在發送請求時夾帶 headers 資料，放在全域的話，每次發請求都會自動夾帶
 axios.defaults.headers.common["Authorization"] = token;
 
@@ -113,7 +111,10 @@ const app = createApp({
     },
   },
   mounted() {
-    console.log(productModal);
+    productModal = new bootstrap.Modal(this.$refs.productModal);
+
+    delProductModal = new bootstrap.Modal(this.$refs.delProductModal);
+
     // 在 mounted 時，驗證是否登入，如果沒通過驗證就跑 catch
     axios
       .post(`${url}/api/user/check`)

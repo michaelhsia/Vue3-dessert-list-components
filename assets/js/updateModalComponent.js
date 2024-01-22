@@ -306,7 +306,4 @@ export default {
     </div>
   </div>
 </div>`,
-  mounted() {
-    productModal = new bootstrap.Modal(this.$refs.productModal);
-  },
 };

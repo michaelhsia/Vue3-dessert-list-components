@@ -5,6 +5,7 @@ import { createApp } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
 // 元件
 import updateModal from "./updateModalComponent";
 import delModal from "./delModalComponent";
+import pagination from "./pagination";
 
 // axios 套件 -> 預設匯入
 import axios from "axios";
@@ -34,19 +35,30 @@ const app = createApp({
       productModal: null,
       // 接收內層元件建立的 bs5 delProductModal 實體
       delProductModal: null,
+
       // products 陣列存取外部回傳的產品資料 -> 會回傳物件
       products: [],
+      productsLength: 0,
       // 決定發請求時，是新增(post)或是編輯(put)的變數
       isNew: false,
       // tempProduct 物件存取要渲染的產品細節
       tempProduct: {
         imagesUrl: [],
       },
+
+      dataDisplay: [],
+      currentPage: 1,
+      perPage: 10,
+      pageTotal: 0,
+      minData: 0,
+      maxData: 0,
     };
   },
+  // 元件
   components: {
     updateModal,
     delModal,
+    pagination,
   },
   methods: {
     // 未登入，會跳回登入頁面
@@ -61,6 +73,9 @@ const app = createApp({
         .get(`${url}/api/${path}/admin/products/all`)
         .then((res) => {
           this.products = res.data.products;
+          this.productsLength = Object.keys(this.products).length;
+          this.pageTotal = Math.ceil(this.productsLength / this.perPage);
+          console.log(this.pageTotal);
           //   console.log(this.products);
         })
         .catch((err) => alert(`發生錯誤： ${err.response} 請檢查錯誤`));
@@ -112,15 +127,16 @@ const app = createApp({
       this.tempProduct.imagesUrl.push("");
     },
   },
+  // 因應分頁導覽需計算資料長度，因此在data新增一個productsLength，故不需要再使用 computed
   // 這邊單純只要呈現「有幾項商品」，可以從 data 的 products 計算，但不用寫回 data，所以使用 computed
-  computed: {
-    total() {
-      // 用 Object.keys 計算商品有多少屬性 -> 會回傳一組商品 id 陣列
-      const productCount = Object.keys(this.products);
-      //  console.log(productCount);
-      return productCount.length;
-    },
-  },
+  //   computed: {
+  //     total() {
+  //       // 用 Object.keys 計算商品有多少屬性 -> 會回傳一組商品 id 陣列
+  //       const productCount = Object.keys(this.products);
+  //       //  console.log(productCount);
+  //       return productCount.length;
+  //     },
+  //   },
   mounted() {
     // 在 mounted 時，驗證是否登入，如果沒通過驗證就跑 catch
     axios

@@ -90,7 +90,7 @@
               <!-- 如果用 products.length 會回傳 undefined 因為 api products/all 會回傳物件，物件無法使用 length 算長度 -->
               <!-- 單純呈現有幾項商品，從 data 的 products 計算，但不用寫入 data，所以使用 computed -->
               <caption>
-                {{ `目前有 ${total} 項商品` }}
+                {{ `目前有 ${productsLength} 項商品` }}
               </caption>
             </table>
           </div>
@@ -141,6 +141,7 @@
             <div v-else class="text-secondary">請選擇一項商品</div>
           </div>
         </div>
+        <pagination :product-data="products"></pagination>
       </div>
       <!-- 新增、編輯 Modal -->
       <!-- 牽涉到該元件的 emit 或 props 都在這標籤上定義 -->

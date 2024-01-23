@@ -23,6 +23,8 @@ export default {
     return {
       // 內層元件用來儲存 BS5 productModal 實體的資料狀態
       productModal: null,
+      // 內層元件用來避免單向數據流以修改外層 props: tempProduct -> product 所定義的資料狀態
+      // template 內還是可以用 props 的 product 渲染畫面，只因為要修改外層資料所以才定義了一個 innderProduct
       innerProduct: {},
     };
   },
@@ -64,7 +66,7 @@ export default {
                     class="form-control"
                     id="productTitle"
                     placeholder="請輸入商品標題"
-                    v-model="innerProduct.title"
+                    v-model="product.title"
                   />
                 </div>
               </div>
@@ -78,7 +80,7 @@ export default {
                     class="form-control"
                     id="productCategory"
                     placeholder="請輸入商品分類"
-                    v-model="innerProduct.category"
+                    v-model="product.category"
                   />
                 </div>
               </div>
@@ -95,7 +97,7 @@ export default {
                     id="productOriginPrice"
                     min="10"
                     placeholder="請輸入商品原價"
-                    v-model.number="innerProduct.origin_price"
+                    v-model.number="product.origin_price"
                   />
                 </div>
               </div>
@@ -110,7 +112,7 @@ export default {
                     id="productPrice"
                     min="10"
                     placeholder="請輸入商品售價"
-                    v-model.number="innerProduct.price"
+                    v-model.number="product.price"
                   />
                 </div>
               </div>
@@ -122,7 +124,7 @@ export default {
                     class="form-control"
                     id="productUnit"
                     placeholder="請輸入商品單位"
-                    v-model="innerProduct.unit"
+                    v-model="product.unit"
                   />
                 </div>
               </div>
@@ -136,7 +138,7 @@ export default {
                 class="form-control"
                 id="productDescription"
                 placeholder="請輸入商品描述"
-                v-model="innerProduct.description"
+                v-model="product.description"
               />
             </div>
             <div class="mb-3">
@@ -148,7 +150,7 @@ export default {
                 class="form-control"
                 id="productContent"
                 placeholder="請輸入商品內容"
-                v-model="innerProduct.content"
+                v-model="product.content"
               />
             </div>
             <div class="mb-3">
@@ -156,7 +158,7 @@ export default {
                 type="checkbox"
                 class="form-checkbox-input me-1"
                 id="productIsEnabled"
-                v-model="innerProduct.is_enabled"
+                v-model="product.is_enabled"
                 :true-value="1"
                 :false-value="0"
               />
@@ -176,22 +178,22 @@ export default {
                 class="form-control mb-3"
                 id="productMainImage"
                 placeholder="請輸入主圖網址"
-                v-model="innerProduct.imageUrl"
+                v-model="product.imageUrl"
               />
               <img
                 class="img-fluid"
-                :src="innerProduct.imageUrl"
-                :alt="innerProduct.title"
+                :src="product.imageUrl"
+                :alt="product.title"
               />
             </div>
             <h5>多圖新增</h5>
             <!-- 使用 Array.isArray 驗證傳入的值是否為陣列，如果是就回傳 true -->
-            <div v-if="Array.isArray(innerProduct.imagesUrl)">
+            <div v-if="Array.isArray(product.imagesUrl)">
               <!-- 用 v-for 跑 product.imagesUrl，label 的 for 跟 input 的 id 用 key 來綁定 -->
               <!-- 陣列裡有空字串有會渲染，不過因為 input value 為空所以不會顯示任何東西 -->
               <div
                 class="mb-1"
-                v-for="(image, key) in innerProduct.imagesUrl"
+                v-for="(image, key) in product.imagesUrl"
                 :key="key"
               >
                 <div class="mb-3">
@@ -201,7 +203,7 @@ export default {
                   <!-- v-model 使用索引值(key)綁定對應的圖片 url -> product.imagesUrl[key] -->
                   <input
                     :id="image"
-                    v-model="innerProduct.imagesUrl[key]"
+                    v-model="product.imagesUrl[key]"
                     type="url"
                     class="form-control"
                     placeholder="請輸入圖片連結"
@@ -214,12 +216,12 @@ export default {
               當第一次點開新增圖片後，雖然 push 一個空字串到 imagesUrl 陣列，length 有值了，但是若是用陣列取值去讀取，仍會取得假值，空字串視為 false，所以 false || false 會顯示刪除圖片按鈕 -->
               <!-- 簡言之就是當 imagesUrl 為空陣列，或是有填寫網址時會呈現新增圖片按鈕 -->
               <div
-                v-if="!innerProduct.imagesUrl.length || innerProduct.imagesUrl[innerProduct.imagesUrl.length - 1]"
+                v-if="!product.imagesUrl.length || product.imagesUrl[product.imagesUrl.length - 1]"
               >
                 <!-- 長度為 0 或是上一個 input 填滿了，會推一個空字串進去，重新跑 v-for，並且渲染出一個新的空 input 讓人填寫下一個網址 -->
                 <button
                   class="btn btn-outline-success btn-sm d-block w-100"
-                  @click="innerProduct.imagesUrl.push('')"
+                  @click="product.imagesUrl.push('')"
                 >
                   新增圖片
                 </button>
@@ -227,7 +229,7 @@ export default {
               <div v-else>
                 <button
                   class="btn btn-outline-danger btn-sm d-block w-100"
-                  @click="innerProduct.imagesUrl.pop()"
+                  @click="product.imagesUrl.pop()"
                 >
                   刪除圖片
                 </button>
@@ -305,7 +307,7 @@ export default {
       else if (this.isNew === false) {
         axios
           .put(`${url}/api/${path}/admin/product/${this.innerProduct.id}`, {
-            data: this.tempProduct,
+            data: this.innerProduct,
           })
           .then((res) => {
             console.log(res.data);
@@ -334,9 +336,11 @@ export default {
       }
     },
   },
-  mounted() {
+  // mounted 階段 props product 沒東西，只有變更畫面(updated)時才有東西。所以在 updated 時，把外層 props 傳入的 product，賦予給內層元件定義的資料 innerProduct，才能修改後用 innerProduct 去 post 或 put product api
+  updated() {
     this.innerProduct = this.product;
-    console.log(this.innerProduct);
+  },
+  mounted() {
     // 建立新增或編輯商品時開啟的的 BS5 productModal 物件實體
     this.productModal = new bootstrap.Modal(this.$refs.productModal);
     // 把上面建立的實體透過 emit 當作參數傳遞到外層調用 productModal.show()

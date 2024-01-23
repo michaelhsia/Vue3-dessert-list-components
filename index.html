@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>產品頁面</title>
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+      crossorigin="anonymous"
+    />
+    <script type="module" crossorigin src="/Vue3-dessert-list-components/assets/index-176c2099.js"></script>
+    <link rel="modulepreload" crossorigin href="/Vue3-dessert-list-components/assets/sweetalert2.all-52ec6000.js">
+    <link rel="stylesheet" href="/Vue3-dessert-list-components/assets/sweetalert2-96b43563.css">
+  </head>
+  <body>
+    <div id="app">
+      <div class="container p-4">
+        <div class="row">
+          <!-- 產品列表 -->
+          <div class="col-md-6">
+            <div class="d-flex align-items-center">
+              <h1 class="fs-2 me-3">產品列表</h1>
+              <!-- 新增商品按鈕 -->
+              <button
+                type="button"
+                class="btn btn-success m-0 p-1"
+                @click="openModal('new')"
+              >
+                新增商品
+              </button>
+            </div>
+            <table class="table table-hover">
+              <thead class="table-success">
+                <tr>
+                  <th scope="col">產品名稱</th>
+                  <th scope="col">原價</th>
+                  <th scope="col">售價</th>
+                  <th scope="col">是否啟用</th>
+                  <th scope="col">查看細節</th>
+                  <th scope="col">編輯</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- v-for 渲染表格，記得綁定 :key 唯一值 -->
+                <tr v-for="item in products" :key="item.title">
+                  <td>{{ item.title }}</td>
+                  <td>{{ item.origin_price }}</td>
+                  <td>{{ item.price }}</td>
+                  <td>
+                    <span v-if="item.is_enabled >= 1" class="text-success"
+                      >啟用</span
+                    ><span v-else class="text-danger">未啟用</span>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn btn-success"
+                      @click="tempProduct = item"
+                    >
+                      查看細節
+                    </button>
+                  </td>
+                  <td>
+                    <div
+                      class="btn-group"
+                      role="group"
+                      aria-label="Basic mixed styles example"
+                    >
+                      <!-- 點擊編輯，會觸發 openModal，進而開啟「編輯商品彈跳視窗」及編輯資料狀態 -->
+                      <button
+                        type="button"
+                        class="btn btn-outline-success"
+                        @click="openModal('edit', item)"
+                      >
+                        編輯
+                      </button>
+                      <!-- 點擊編輯，會觸發 openModal，進而開啟「刪除商品彈跳視窗」及指定資料狀態 -->
+                      <button
+                        type="button"
+                        class="btn btn-outline-danger"
+                        @click="openModal('delete', item)"
+                      >
+                        刪除
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+              <!-- getData 用 products 那支 API，與第三週主線使用的 products/all 不同，現在直接回傳陣列，所以用 products.length 直接取長度算資料筆數就好 -->
+              <caption>
+                {{ `目前有 ${products.length} 項商品` }}
+              </caption>
+            </table>
+          </div>
+          <!-- 產品細節 -->
+          <div class="col-md-6">
+            <h2>產品細節</h2>
+            <!-- 如果有點「查看細節」，tempProduct 會有資料，會顯示此區塊 -->
+            <!-- 編輯商品時，因為這部分是綁定 tempProduct 資料，所以會同步動到 -->
+            <div v-if="tempProduct.title">
+              <div class="card mb-3">
+                <img
+                  :src="tempProduct.imageUrl"
+                  class="card-img-top cardImg object-fit-cover object-position-center"
+                  :alt="tempProduct.title"
+                />
+                <div class="card-body">
+                  <h5 class="card-title">
+                    {{ tempProduct.title }}
+                    <span class="fs-6 text-white bg-success rounded-2 ms-2 p-1"
+                      >{{ tempProduct.category }}</span
+                    >
+                  </h5>
+                  <p class="card-text">
+                    商品描述：{{ tempProduct.description }}
+                  </p>
+                  <p class="card-text">商品內容：{{ tempProduct.content }}</p>
+                  <p class="card-text">
+                    商品價格：{{ tempProduct.price }}<span
+                      class="text-secondary text-decoration-line-through ms-2"
+                      >{{ tempProduct.origin_price }}</span
+                    >
+                    / {{ tempProduct.unit }}
+                  </p>
+                </div>
+              </div>
+              <span
+                v-for="(image, id) in tempProduct.imagesUrl"
+                :key="'image' + id"
+              >
+                <!-- 用 v-if 讓小圖片如果沒有 imageUrl 就藏起來 -->
+                <img
+                  v-if="image"
+                  :src="image"
+                  :alt="tempProduct.title + id"
+                  class="productImg object-fit-cover object-position-center rounded-5 p-2"
+              /></span>
+            </div>
+            <div v-else class="text-secondary">請選擇一項商品</div>
+          </div>
+        </div>
+        <!-- 分頁導覽列元件 -->
+        <pagination
+          :pages="pagination"
+          @update-page="getProductData"
+        ></pagination>
+      </div>
+      <!-- 新增、編輯 Modal 元件 -->
+      <!-- 牽涉到該元件的 emit 或 props 都在這標籤上定義 -->
+      <update-modal
+        :product="tempProduct"
+        :is-new="isNew"
+        @update="getProductData"
+        @product-modal-created="getProductModal"
+        @inner-create-images="createImages"
+      ></update-modal>
+      <!-- 刪除 Modal 元件 -->
+      <del-modal
+        :item="tempProduct"
+        @update="getProductData"
+        @del-modal-component-created="getDelProductModal"
+        @clear-outer-temp-product="clearTempProduct"
+      ></del-modal>
+    </div>
+
+    
+    
+    <!-- <script
+      src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+      integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
+      crossorigin="anonymous"
+    ></script> -->
+
+    <!-- 不加入會出現 bootstrap undefined 錯誤，但明明已經有 npm install BS5 了，不知道為何還會出錯 -->
+    <!-- <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+      crossorigin="anonymous"
+    ></script> -->
+  </body>
+</html>

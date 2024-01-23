@@ -1,71 +1,32 @@
-import { productModal } from "./index";
+// 檔案中要使用 bootstrap 方法必須先import bootstrap
+import * as bootstrap from "bootstrap/dist/js/bootstrap.min.js";
+// axios 套件 -> 預設匯入
+import axios from "axios";
+
+// sweetalert2 套件 -> 預設匯入
+import Swal from "sweetalert2";
+
+// API baseUrl
+const url = "https://ec-course-api.hexschool.io/v2";
+
+// API path
+const path = "michaelhsia";
+
+// 從 cookie 取得 token 資料
+const token = document.cookie.replace(
+  /(?:(?:^|.*;\s*)hexToken\s*\=\s*([^;]*).*$)|^.*$/,
+  "$1"
+);
 
 export default {
-  props: ["product", "isNew"],
-  methods: {
-    // 更新商品
-    updateProduct() {
-      // 新增商品就發送 post 請求
-      if (this.isNew === true) {
-        axios
-          .post(`${url}/api/${path}/admin/product`, { data: this.tempProduct })
-          .then((res) => {
-            // 新增商品成功通知
-            Swal.fire({
-              title: `${res.data.message}`,
-              icon: "success",
-              showConfirmButton: false,
-              timer: 1500,
-            });
-
-            // 關閉「新增商品」彈跳視窗
-            productModal.hide();
-
-            // 重新渲染表格
-            this.getProductData();
-          })
-          .catch((err) => {
-            Swal.fire({
-              title: `${err.response.data.message}`,
-              icon: "warning",
-              showConfirmButton: false,
-              timer: 1500,
-            });
-          });
-      }
-      // 修改商品就發送 put 請求，要有商品 id
-      else if (this.isNew === false) {
-        axios
-          .put(`${url}/api/${path}/admin/product/${this.tempProduct.id}`, {
-            data: this.tempProduct,
-          })
-          .then((res) => {
-            console.log(res.data);
-            // 編輯商品成功通知
-            Swal.fire({
-              title: `${res.data.message}`,
-              icon: "success",
-              showConfirmButton: false,
-              timer: 1500,
-            });
-
-            // 關閉「編輯商品」彈跳視窗
-            productModal.hide();
-
-            // 重新渲染表格
-            this.getProductData();
-          })
-          .catch((err) => {
-            Swal.fire({
-              title: `${err.response.data.message}`,
-              icon: "warning",
-              showConfirmButton: false,
-              timer: 1500,
-            });
-          });
-      }
-    },
+  data() {
+    return {
+      // 內層元件用來儲存 BS5 productModal 實體的資料狀態
+      productModal: null,
+      innerProduct: {},
+    };
   },
+  props: ["product", "isNew"],
   template: `<div
   class="modal fade"
   id="productModal"
@@ -103,7 +64,7 @@ export default {
                     class="form-control"
                     id="productTitle"
                     placeholder="請輸入商品標題"
-                    v-model="product.title"
+                    v-model="innerProduct.title"
                   />
                 </div>
               </div>
@@ -117,7 +78,7 @@ export default {
                     class="form-control"
                     id="productCategory"
                     placeholder="請輸入商品分類"
-                    v-model="product.category"
+                    v-model="innerProduct.category"
                   />
                 </div>
               </div>
@@ -134,7 +95,7 @@ export default {
                     id="productOriginPrice"
                     min="10"
                     placeholder="請輸入商品原價"
-                    v-model.number="product.origin_price"
+                    v-model.number="innerProduct.origin_price"
                   />
                 </div>
               </div>
@@ -149,7 +110,7 @@ export default {
                     id="productPrice"
                     min="10"
                     placeholder="請輸入商品售價"
-                    v-model.number="product.price"
+                    v-model.number="innerProduct.price"
                   />
                 </div>
               </div>
@@ -161,7 +122,7 @@ export default {
                     class="form-control"
                     id="productUnit"
                     placeholder="請輸入商品單位"
-                    v-model="product.unit"
+                    v-model="innerProduct.unit"
                   />
                 </div>
               </div>
@@ -175,7 +136,7 @@ export default {
                 class="form-control"
                 id="productDescription"
                 placeholder="請輸入商品描述"
-                v-model="product.description"
+                v-model="innerProduct.description"
               />
             </div>
             <div class="mb-3">
@@ -187,7 +148,7 @@ export default {
                 class="form-control"
                 id="productContent"
                 placeholder="請輸入商品內容"
-                v-model="product.content"
+                v-model="innerProduct.content"
               />
             </div>
             <div class="mb-3">
@@ -195,7 +156,7 @@ export default {
                 type="checkbox"
                 class="form-checkbox-input me-1"
                 id="productIsEnabled"
-                v-model="product.is_enabled"
+                v-model="innerProduct.is_enabled"
                 :true-value="1"
                 :false-value="0"
               />
@@ -215,22 +176,22 @@ export default {
                 class="form-control mb-3"
                 id="productMainImage"
                 placeholder="請輸入主圖網址"
-                v-model="product.imageUrl"
+                v-model="innerProduct.imageUrl"
               />
               <img
                 class="img-fluid"
-                :src="product.imageUrl"
-                :alt="product.title"
+                :src="innerProduct.imageUrl"
+                :alt="innerProduct.title"
               />
             </div>
             <h5>多圖新增</h5>
             <!-- 使用 Array.isArray 驗證傳入的值是否為陣列，如果是就回傳 true -->
-            <div v-if="Array.isArray(product.imagesUrl)">
+            <div v-if="Array.isArray(innerProduct.imagesUrl)">
               <!-- 用 v-for 跑 product.imagesUrl，label 的 for 跟 input 的 id 用 key 來綁定 -->
               <!-- 陣列裡有空字串有會渲染，不過因為 input value 為空所以不會顯示任何東西 -->
               <div
                 class="mb-1"
-                v-for="(image, key) in product.imagesUrl"
+                v-for="(image, key) in innerProduct.imagesUrl"
                 :key="key"
               >
                 <div class="mb-3">
@@ -240,7 +201,7 @@ export default {
                   <!-- v-model 使用索引值(key)綁定對應的圖片 url -> product.imagesUrl[key] -->
                   <input
                     :id="image"
-                    v-model="product.imagesUrl[key]"
+                    v-model="innerProduct.imagesUrl[key]"
                     type="url"
                     class="form-control"
                     placeholder="請輸入圖片連結"
@@ -253,12 +214,12 @@ export default {
               當第一次點開新增圖片後，雖然 push 一個空字串到 imagesUrl 陣列，length 有值了，但是若是用陣列取值去讀取，仍會取得假值，空字串視為 false，所以 false || false 會顯示刪除圖片按鈕 -->
               <!-- 簡言之就是當 imagesUrl 為空陣列，或是有填寫網址時會呈現新增圖片按鈕 -->
               <div
-                v-if="!product.imagesUrl.length || product.imagesUrl[product.imagesUrl.length - 1]"
+                v-if="!innerProduct.imagesUrl.length || innerProduct.imagesUrl[innerProduct.imagesUrl.length - 1]"
               >
                 <!-- 長度為 0 或是上一個 input 填滿了，會推一個空字串進去，重新跑 v-for，並且渲染出一個新的空 input 讓人填寫下一個網址 -->
                 <button
                   class="btn btn-outline-success btn-sm d-block w-100"
-                  @click="product.imagesUrl.push('')"
+                  @click="innerProduct.imagesUrl.push('')"
                 >
                   新增圖片
                 </button>
@@ -266,7 +227,7 @@ export default {
               <div v-else>
                 <button
                   class="btn btn-outline-danger btn-sm d-block w-100"
-                  @click="product.imagesUrl.pop()"
+                  @click="innerProduct.imagesUrl.pop()"
                 >
                   刪除圖片
                 </button>
@@ -277,7 +238,7 @@ export default {
             <div v-else>
               <button
                 class="btn btn-outline-primary btn-sm d-block w-100"
-                @click="createImages"
+                @click="innerCreateImages"
               >
                 新增圖片
               </button>
@@ -305,5 +266,80 @@ export default {
       </div>
     </div>
   </div>
-</div>`,
+  </div>`,
+  methods: {
+    innerCreateImages() {
+      this.$emit("createImages");
+    },
+    // 更新商品
+    updateProduct() {
+      // 新增商品就發送 post 請求
+      if (this.isNew === true) {
+        axios
+          .post(`${url}/api/${path}/admin/product`, { data: this.innerProduct })
+          .then((res) => {
+            // 新增商品成功通知
+            Swal.fire({
+              title: `${res.data.message}`,
+              icon: "success",
+              showConfirmButton: false,
+              timer: 1500,
+            });
+
+            // 關閉「新增商品」彈跳視窗
+            this.productModal.hide();
+
+            // 重新渲染表格
+            this.$emit("update");
+          })
+          .catch((err) => {
+            Swal.fire({
+              title: `${err.response.data.message}`,
+              icon: "warning",
+              showConfirmButton: false,
+              timer: 1500,
+            });
+          });
+      }
+      // 修改商品就發送 put 請求，要有商品 id
+      else if (this.isNew === false) {
+        axios
+          .put(`${url}/api/${path}/admin/product/${this.innerProduct.id}`, {
+            data: this.tempProduct,
+          })
+          .then((res) => {
+            console.log(res.data);
+            // 編輯商品成功通知
+            Swal.fire({
+              title: `${res.data.message}`,
+              icon: "success",
+              showConfirmButton: false,
+              timer: 1500,
+            });
+
+            // 關閉「編輯商品」彈跳視窗
+            this.productModal.hide();
+
+            // 重新渲染表格
+            this.$emit("update");
+          })
+          .catch((err) => {
+            Swal.fire({
+              title: `${err.response.data.message}`,
+              icon: "warning",
+              showConfirmButton: false,
+              timer: 1500,
+            });
+          });
+      }
+    },
+  },
+  mounted() {
+    this.innerProduct = this.product;
+    console.log(this.innerProduct);
+    // 建立新增或編輯商品時開啟的的 BS5 productModal 物件實體
+    this.productModal = new bootstrap.Modal(this.$refs.productModal);
+    // 把上面建立的實體透過 emit 當作參數傳遞到外層調用 productModal.show()
+    this.$emit("productModalCreated", this.productModal);
+  },
 };

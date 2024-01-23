@@ -1,6 +1,7 @@
 // Vue
 import { createApp } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
 
+// import "bootstrap/dist/js/bootstrap.min.js";
 // 元件
 import updateModal from "./updateModalComponent";
 import delModal from "./delModalComponent";
@@ -23,18 +24,16 @@ const token = document.cookie.replace(
   "$1"
 );
 
-// 新增或編輯商品時的 BS5 元物件實例
-let productModal = null;
-export { productModal };
-// 刪除商品時的 BS5 元物件實例
-let delProductModal = null;
-export { delProductModal };
 // 有些 request 需要夾帶 token 才能使用，所以在發送請求時夾帶 headers 資料，放在全域的話，每次發請求都會自動夾帶
 axios.defaults.headers.common["Authorization"] = token;
 
 const app = createApp({
   data() {
     return {
+      // 接收內層元件建立的 bs5 productModal 實體
+      productModal: null,
+      // 接收內層元件建立的 bs5 delProductModal 實體
+      delProductModal: null,
       // products 陣列存取外部回傳的產品資料 -> 會回傳物件
       products: [],
       // 決定發請求時，是新增(post)或是編輯(put)的變數
@@ -77,7 +76,7 @@ const app = createApp({
         this.isNew = true;
 
         // 開啟新增商品的視窗
-        productModal.show();
+        this.productModal.show();
       }
       // 如果是編輯或刪除商品，會「淺拷貝」 item 並賦予給 tempProduct 這樣才不會在編輯時因為 v-model 而修改到畫面
       else if (isNew === "edit") {
@@ -87,13 +86,25 @@ const app = createApp({
         this.isNew = false;
 
         // 開啟編輯商品的視窗
-        productModal.show();
+        this.productModal.show();
       } else if (isNew === "delete") {
         this.tempProduct = { ...item };
 
         // 開啟刪除商品的視窗
-        delProductModal.show();
+        this.delProductModal.show();
       }
+    },
+    // 用來接收 updateModalComponent 元件傳遞出來的參數(BS5 productModal 實體)而建立的方法
+    getProductModal(productModal) {
+      this.productModal = productModal;
+    },
+    // 用來接收 delModalComponent 元件傳遞出來的參數(BS5 delProductModal 實體)而建立的方法
+    getDelProductModal(delProductModal) {
+      this.delProductModal = delProductModal;
+    },
+    // 用來接收 delModalComponent 元件修改外層元件後傳遞出來的參數(innerDelProduct)而建立的方法
+    clearTempProduct(delProduct) {
+      this.tempProduct = delProduct;
     },
     // 新增商品小圖，除非 this.tempProduct 沒有陣列屬性才有機會用到
     createImages() {
@@ -111,10 +122,6 @@ const app = createApp({
     },
   },
   mounted() {
-    productModal = new bootstrap.Modal(this.$refs.productModal);
-
-    delProductModal = new bootstrap.Modal(this.$refs.delProductModal);
-
     // 在 mounted 時，驗證是否登入，如果沒通過驗證就跑 catch
     axios
       .post(`${url}/api/user/check`)

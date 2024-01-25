@@ -24,7 +24,7 @@ export default {
       // 內層元件用來儲存 BS5 productModal 實體的資料狀態
       productModal: null,
       // 內層元件用來避免單向數據流以修改外層 props: tempProduct -> product 所定義的資料狀態
-      // template 內還是可以用 props 的 product 渲染畫面，只因為要修改外層資料所以才定義了一個 innderProduct
+      // template 內還是可以用 props 的 product 渲染畫面，只因為要修改外層資料所以才定義了一個 innerProduct
       innerProduct: {},
     };
   },
@@ -336,9 +336,11 @@ export default {
       }
     },
   },
-  // mounted 階段 props product 沒東西，只有變更畫面(updated)時才有東西。所以在 updated 時，把外層 props 傳入的 product，賦予給內層元件定義的資料 innerProduct，才能修改後用 innerProduct 去 post 或 put product api
+  // mounted 階段 props product 沒東西，只有變更畫面(updated，包含點擊新增、編輯按鈕開啟modal)時才有東西。所以在 updated 時，把外層 props 傳入的 product，賦予給內層元件定義的資料 innerProduct，才能修改後用 innerProduct 去 post 或 put product api
+  // template 上的 v-model 雖然仍綁定 props 傳入的 product，但實際上每次在修改時，因為我們在 updated 把 props 綁定內層資料 innerProduct，所以兩者會同步變動，又我們在 post 或 put 時，是推送內層資料 innerProduct，所以不會實際變更到外層資料，因此不會跳錯。最後會用 innerProduct 推送的資料更新外層 products，透過內層 emit update 觸發外層 getProductData 重新渲染表格
   updated() {
     this.innerProduct = this.product;
+    // console.log(this.innerProduct, this.product);
   },
   mounted() {
     // 建立新增或編輯商品時開啟的的 BS5 productModal 物件實體
